@@ -129,7 +129,8 @@ function construct_W(tas::Vector{Pair{T1, S1}}, N, T, is, ts) where T1 where S1 
     return W
 end
 
-# Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
+#= old version, replaced by DP version below
+#Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
 # version without covariates
 function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
     id_var = nothing, t_var = nothing, outcome_var = nothing, 
@@ -168,6 +169,7 @@ function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
 
     BalancedPanel{SingleUnitTreatment{Continuous}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
+=#
 
 ## DP: Version with covariates 
 # Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
@@ -421,6 +423,7 @@ function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
     BalancedPanel{SingleUnitTreatment{Discontinuous}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
 
+#= old version, replaced by DP versoin below
 # Fallback method, no covariates - if the length of treatment assignment is one use single treatment method above
 function BalancedPanel_maker(df::DataFrame, treatment_assignment; 
     id_var = nothing, t_var = nothing, outcome_var = nothing,  
@@ -491,7 +494,7 @@ function BalancedPanel_maker(df::DataFrame, treatment_assignment;
 
     BalancedPanel{MultiUnitTreatment{uttype{tdtype}}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
-
+=#
 
 # DP Fallback method with covariates - if the length of treatment assignment is one use single treatment method above
 function BalancedPanel_maker(df::DataFrame, treatment_assignment; 
