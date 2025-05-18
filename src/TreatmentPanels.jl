@@ -2,7 +2,6 @@ module TreatmentPanels_Daniel
 
     include("TreatmentPanel.jl")
     include("show_and_plot.jl")
-    include("TreatmentPanels_additions.jl")
 
     # Export main types
     export TreatmentPanel
