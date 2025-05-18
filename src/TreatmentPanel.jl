@@ -46,7 +46,8 @@ The following table provides an overview of the types of treatment pattern suppo
 """
 @with_kw struct BalancedPanel{UTType} <: TreatmentPanel where UTType <: TreatmentType
     W::Union{Matrix{Bool}, Matrix{Union{Missing, Bool}}}
-    Y::Matrix{Float64}
+    #Y::Union{Matrix{Float64},Array{Float64,3}}
+    Y::Array
     df::DataFrame
     id_var::Union{String, Symbol}
     t_var::Union{String, Symbol}
@@ -129,7 +130,8 @@ function construct_W(tas::Vector{Pair{T1, S1}}, N, T, is, ts) where T1 where S1 
 end
 
 # Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
-function BalancedPanel(df::DataFrame, treatment_assignment::Pair{T1, T2};
+# version without covariates
+function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
     id_var = nothing, t_var = nothing, outcome_var = nothing, 
     sort_inplace = false) where T1 where T2 <: Union{Date, Int}
 
@@ -166,6 +168,69 @@ function BalancedPanel(df::DataFrame, treatment_assignment::Pair{T1, T2};
 
     BalancedPanel{SingleUnitTreatment{Continuous}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
+
+## DP: Version with covariates 
+# Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
+function BalancedPanel_maker(df::DataFrame, 
+                        treatment_assignment::Pair{T1, T2};
+                        id_var = nothing, 
+                        t_var = nothing, 
+                        outcome_var = nothing, 
+                        covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
+                        sort_inplace = false) where T1 where T2 <: Union{Date, Int}
+
+    if typeof(covariates) == Symbol
+        covariates = [covariates]
+    end
+                        
+    # Get all units and time periods
+    is = sort(unique(df[!, id_var])); i_set = Set(is)
+    ts = sort(unique(df[!, t_var])); t_set = Set(ts)
+
+    # Dimensions
+    N = length(is)
+    T = length(ts)
+
+    # Get all treatment units and treatment periods
+    treated_i = first(treatment_assignment)
+    treated_t = last(treatment_assignment)
+
+    # Sanity checks
+    check_id_t_outcome(df, outcome_var, id_var, t_var)
+    in(treated_i, i_set) || throw("Error: Treatment unit $treated_i is not in the list of unit identifiers $id_var")
+    in(treated_t, t_set) || throw("Error: Treatment period $treated_t is not in the list of time identifiers $t_var")
+    
+    # Sort data if necessary, in place if required
+    df = ifelse(issorted(df, [id_var, t_var]), df, 
+                                               ifelse(sort_inplace, sort!(df, [id_var, t_var]), 
+                                                                    sort(df, [id_var, t_var])))
+
+    # Treatment matrix
+    W = construct_W(treatment_assignment, N, T, is, ts)
+    #W = TreatmentPanels.construct_W(treatment_assignment, N, T, is, ts)
+
+    # Outcome matrix
+    if !isnothing(covariates)
+        Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+            Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
+        end
+        # add covariates in 3rd dimension
+        for covariate in eachindex(covariates)
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+                Y[row, col,1+covariate] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), covariates[covariate]])
+            end
+        end
+    else
+        Y = zeros(eltype(df[!, outcome_var]), size(W))
+        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+            Y[row, col] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
+        end
+    end
+
+    return BalancedPanel{SingleUnitTreatment{Continuous}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
+end
+
 
 # Getter functions
 """
@@ -313,7 +378,7 @@ end
 ####################################################################################################
 
 # Constructor for single start/end treatment - returns BalancedPanel{SingleUnitTreatment{Discontinuous}}
-function BalancedPanel(df::DataFrame, treatment_assignment::Pair{T1, T2};
+function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
     id_var = nothing, t_var = nothing, outcome_var = nothing, 
     sort_inplace = false) where T1 where T2 <: Union{Pair{Date, Date}, Pair{Int, Int}}
 
@@ -356,13 +421,13 @@ function BalancedPanel(df::DataFrame, treatment_assignment::Pair{T1, T2};
     BalancedPanel{SingleUnitTreatment{Discontinuous}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
 
-# Fallback method - if the length of treatment assignment is one use single treatment method above
-function BalancedPanel(df::DataFrame, treatment_assignment; 
+# Fallback method, no covariates - if the length of treatment assignment is one use single treatment method above
+function BalancedPanel_maker(df::DataFrame, treatment_assignment; 
     id_var = nothing, t_var = nothing, outcome_var = nothing,  
     sort_inplace = false)
 
     if length(treatment_assignment) == 1
-        return BalancedPanel(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
+        return BalancedPanel_maker(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
                                 outcome_var = outcome_var, sort_inplace = sort_inplace)
     end
 
@@ -426,6 +491,103 @@ function BalancedPanel(df::DataFrame, treatment_assignment;
 
     BalancedPanel{MultiUnitTreatment{uttype{tdtype}}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
 end
+
+
+# DP Fallback method with covariates - if the length of treatment assignment is one use single treatment method above
+function BalancedPanel_maker(df::DataFrame, treatment_assignment; 
+                                id_var = nothing, 
+                                t_var = nothing, 
+                                outcome_var = nothing, 
+                                covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
+                                sort_inplace = false)
+
+    if length(treatment_assignment) == 1
+        return BalancedPanel_maker(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
+                                outcome_var = outcome_var, covariates = covariates, sort_inplace = sort_inplace)
+    end
+
+    if typeof(covariates) == Symbol
+        covariates = [covariates]
+    end
+
+    # Get all units and time periods
+    is = sort(unique(df[!, id_var])); i_set = Set(is)
+    ts = sort(unique(df[!, t_var])); t_set = Set(ts)
+
+    # Get all treatment units and treatment periods
+    treated_is = first.(treatment_assignment)
+    treated_is = typeof(treated_is) <: AbstractArray ? treated_is : [treated_is]
+    treated_ts = treatment_periods(treatment_assignment)
+    #treated_ts = TreatmentPanels.treatment_periods(treatment_assignment)
+
+    # Dimensions
+    N = length(is)
+    T = length(ts)
+
+    ### SANITY CHECKS ###
+    #TreatmentPanels.check_id_t_outcome(df, outcome_var, id_var, t_var)
+    check_id_t_outcome(df, outcome_var, id_var, t_var)
+    for ti ∈ treated_is
+        in(ti, i_set) || throw("Error: Treatment unit $ti is not in the list of unit identifiers $id_var")
+    end
+
+    for tt ∈ treated_ts
+        in(tt, t_set) || throw("Error: Treatment period $tt is not in the list of time identifiers $t_var")
+    end
+    
+    # Sort data if necessary, in place if required
+    df = ifelse(issorted(df, [id_var, t_var]), df, 
+                                               ifelse(sort_inplace, sort!(df, [id_var, t_var]), 
+                                                                    sort(df, [id_var, t_var])))
+
+    # Treatment matrix
+    W = construct_W(treatment_assignment, N, T, is, ts)
+    #W = TreatmentPanels.construct_W(treatment_assignment, N, T, is, ts)
+    
+     # Outcome matrix
+     if !isnothing(covariates)
+        Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+            Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
+        end
+        # add covariates in 3rd dimension
+        for covariate in eachindex(covariates)
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+                Y[row, col,1+covariate] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), covariates[covariate]])
+            end
+        end
+    else
+        Y = zeros(eltype(df[!, outcome_var]), size(W))
+        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
+            Y[row, col] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
+        end
+    end
+
+    # Determine TreatmentType and TreatmentDurationType
+    uttype = if all(==(treatment_assignment[1][2]), last.(treatment_assignment))
+        Simultaneous
+    else
+        Staggered
+    end
+
+    tdtype = if typeof(treatment_assignment) <: Pair
+        if typeof(treatment_assignment[2]) <: Pair
+            Discontinuous
+        else
+            Continuous
+        end
+    else
+        if typeof(treatment_assignment[1][2]) <: Pair
+            Discontinuous
+        else
+            Continuous
+        end
+    end
+
+    BalancedPanel{MultiUnitTreatment{uttype{tdtype}}}(W, Y, df, id_var, t_var, outcome_var, ts, is)  
+end
+
+
 
 ## UnblancedPanel - N observations but not all of them for T periods
 
