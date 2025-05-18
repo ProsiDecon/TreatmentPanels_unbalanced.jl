@@ -384,12 +384,12 @@ end
 
 
 # DP Fallback method with covariates - if the length of treatment assignment is one use single treatment method above
-function BalancedPanel_maker(df::DataFrame, treatment_assignment::Vector{<:Pair}; 
+function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, Pair{T3, T4}};
                                 id_var = nothing, 
                                 t_var = nothing, 
                                 outcome_var = nothing, 
                                 covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
-                                sort_inplace = false)
+                                sort_inplace = false)  where {T1, T3, T4} 
 
     if length(treatment_assignment) == 1
         return BalancedPanel_maker(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
