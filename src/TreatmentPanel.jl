@@ -646,13 +646,13 @@ function BalancedPanelQ_maker(df::DataFrame,
             error(ArgumentError("Neither dataframe for weights df_q provided nor variable q_var for weights specified."))
         end
 
-        if string(t_var) ∉ names(df_q) && length(unique(df_q.id_var)) == length(df_q.id_var)
+        if string(t_var) ∉ string.(names(df_q)) && length(unique(df_q[!,id_var])) == length(df_q[!,id_var])
             Q = zeros(eltype(df_q[!, q_var]), (size(W, 1)))
             for (row, i) ∈ enumerate(is)
                 Q[row] = only(df_q[(df_q[!, id_var] .== i), q_var])
             end
         else
-            @assert string(t_var) ∈ names(df_q)
+            @assert string(t_var) ∈ string.(names(df_q))
             Q = zeros(eltype(df_q[!, q_var]), (size(W)))
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
                 Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
@@ -772,13 +772,13 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment,
             error(ArgumentError("Neither dataframe for weights df_q provided nor variable q_var for weights specified."))
         end
 
-        if string(t_var) ∉ names(df_q) && length(unique(df_q.id_var)) == length(df_q.id_var)
+        if string(t_var) ∉ string.(names(df_q)) && length(unique(df_q[!,id_var])) == length(df_q[!,id_var])
             Q = zeros(eltype(df_q[!, q_var]), (size(W, 1)))
             for (row, i) ∈ enumerate(is)
                 Q[row] = only(df_q[(df_q[!, id_var] .== i), q_var])
             end
         else
-            @assert string(t_var) ∈ names(df_q)
+            @assert string(t_var) ∈ string.(names(df_q))
             Q = zeros(eltype(df_q[!, q_var]), (size(W)))
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
                 Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
