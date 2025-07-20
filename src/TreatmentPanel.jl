@@ -268,6 +268,14 @@ function first_treated_period_ids(x::BalancedPanel{MultiUnitTreatment{T}}) where
     [x for x ∈ findfirst.(eachrow(x.W)) if !isnothing(x)]
 end
 
+function first_treated_period_ids(x::BalancedPanelQ{SingleUnitTreatment{T}}) where T
+    findfirst(vec(x.W[treated_ids(x), :]))
+end
+
+function first_treated_period_ids(x::BalancedPanelQ{MultiUnitTreatment{T}}) where T
+    [x for x ∈ findfirst.(eachrow(x.W)) if !isnothing(x)]
+end
+
 """
     first_treated_period_labels(x <: BalancedPanel)
 
@@ -275,6 +283,10 @@ end
     of length Nₜᵣ, where T is the eltype of the `t_var` column in the underlying data.
 """
 function first_treated_period_labels(x::BalancedPanel{SingleUnitTreatment{T}}) where T
+    x.ts[first_treated_period_ids(x)]
+end
+
+function first_treated_period_labelsQ(x::BalancedPanel{SingleUnitTreatment{T}}) where T
     x.ts[first_treated_period_ids(x)]
 end
 
@@ -313,6 +325,14 @@ function length_T₁(x::BalancedPanel{MultiUnitTreatment{Simultaneous{Continuous
     size(x.Y[treated_ids(x), :], 2) .- first_treated_period_ids(x) .+ 1
 end
 
+function length_T₁(x::BalancedPanelQ{SingleUnitTreatment{Continuous}})
+    size(x.Y, 2) .- first_treated_period_ids(x) + 1
+end
+
+function length_T₁(x::BalancedPanelQ{MultiUnitTreatment{Simultaneous{Continuous}}})
+    size(x.Y[treated_ids(x), :], 2) .- first_treated_period_ids(x) .+ 1
+end
+
 """ 
     get_y₁₀(x <: BalancedPanel)
 
@@ -320,6 +340,10 @@ end
     this is a vector of length T₀, while for MultiUnitTreatment designs, it is a (Nₜᵣ×T₀) matrix
 """
 function get_y₁₀(x::BalancedPanel{SingleUnitTreatment{Continuous}})
+    x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
+end
+
+function get_y₁₀(x::BalancedPanelQ{SingleUnitTreatment{Continuous}})
     x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
 end
 
