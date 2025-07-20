@@ -646,7 +646,7 @@ function BalancedPanelQ_maker(df::DataFrame,
             error(ArgumentError("Neither dataframe for weights df_q provided nor variable q_var for weights specified."))
         end
 
-        Q = zeros(eltype(df[!, q_var]), (size(W)))
+        Q = zeros(eltype(df_q[!, q_var]), (size(W)))
         for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
             Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
         end
@@ -764,7 +764,7 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment,
             error(ArgumentError("Neither dataframe for weights df_q provided nor variable q_var for weights specified."))
         end
 
-        Q = zeros(eltype(df[!, q_var]), (size(W)))
+        Q = zeros(eltype(df_q[!, q_var]), (size(W)))
         for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
             Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
         end
