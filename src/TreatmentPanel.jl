@@ -56,6 +56,22 @@ The following table provides an overview of the types of treatment pattern suppo
     is::Vector{T2} where T2 <: Union{Symbol, String, Int64}
 end
 
+###################################################################################################
+### add Balanced Panel structs with baseline weights Q (either a dyadic tensor object or an N × T matrix)
+@with_kw struct BalancedPanelQ{UTType} <: TreatmentPanel where UTType <: TreatmentType
+    W::Union{Matrix{Bool}, Matrix{Union{Missing, Bool}}}
+    #Y::Union{Matrix{Float64},Array{Float64,3}}
+    Y::Array
+    Q::Array                # the baseline weights 
+    df::DataFrame
+    id_var::Union{String, Symbol}
+    t_var::Union{String, Symbol}
+    outcome_var::Union{String, Symbol}
+    ts::Vector{T1} where T1 <: Union{Date, Int64}
+    is::Vector{T2} where T2 <: Union{Symbol, String, Int64}
+end
+
+
 # Check that ID, time, and outcome variable are provided
 function check_id_t_outcome(df, outcome_var, id_var, t_var)
     # Check relevant info has been provided
@@ -535,21 +551,7 @@ end
 
 
 
-###################################################################################################
-### add Balanced Panel structs with baseline weights Q (either a dyadic tensor object or an N × T matrix)
-@with_kw struct BalancedPanelQ{UTType} <: TreatmentPanel where UTType <: TreatmentType
-    W::Union{Matrix{Bool}, Matrix{Union{Missing, Bool}}}
-    #Y::Union{Matrix{Float64},Array{Float64,3}}
-    Y::Array
-    Q::Array                # the baseline weights 
-    df::DataFrame
-    id_var::Union{String, Symbol}
-    t_var::Union{String, Symbol}
-    outcome_var::Union{String, Symbol}
-    ts::Vector{T1} where T1 <: Union{Date, Int64}
-    is::Vector{T2} where T2 <: Union{Symbol, String, Int64}
-end
-
+### PanelMakers for BalancedPanelQ
 # Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
 function BalancedPanelQ_maker(df::DataFrame, 
                         treatment_assignment::Pair{<:Any, <:Union{Date, Int}},
