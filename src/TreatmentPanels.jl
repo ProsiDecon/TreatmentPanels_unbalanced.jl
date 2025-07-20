@@ -6,7 +6,9 @@ module TreatmentPanels
     # Export main types
     export TreatmentPanel
     export BalancedPanel 
+    export BalancedPanelQ
     export BalancedPanel_maker
+    export BalancedPanelQ_maker
     # export UnbalancedPanel - Not yet implemented
 
     # Export treatment description types
