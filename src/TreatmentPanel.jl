@@ -559,7 +559,7 @@ function BalancedPanelQ_maker(df::DataFrame,
                         id_var = nothing, 
                         t_var = nothing, 
                         outcome_var = nothing, 
-                        q_var = nothing,                # the variable name if the weights in either df or df_q
+                        q_var = nothing,                # the variable name of the weights in either df or df_q
                         q_id_var = nothing,             # if q_dyadic, the variable name of the (treated) partner of the current weight
                         q_dyadic::Bool = true,
                         covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
@@ -633,8 +633,9 @@ function BalancedPanelQ_maker(df::DataFrame,
 
         # Now loop and fill Q efficiently
         for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-            Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+            Q[row, col, slice] = get(q_lookup, (i, j, t), 0)
         end
+        # use of get() ensures dyads not present in df get assigned a baseline weight of 0
 
         #for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
         #    Q[row, col, slice] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, q_id_var] .== j) .& (df_q[!, t_var] .== t), q_var])
@@ -647,18 +648,23 @@ function BalancedPanelQ_maker(df::DataFrame,
         end
 
         if string(t_var) ∉ string.(names(df_q)) && length(unique(df_q[!,id_var])) == length(df_q[!,id_var])
+            # case where weights are static
             Q = zeros(eltype(df_q[!, q_var]), (size(W, 1)))
             for (row, i) ∈ enumerate(is)
                 Q[row] = only(df_q[(df_q[!, id_var] .== i), q_var])
             end
+            # cases where q_var is missing for potential control units get assigned a baseline weight 0
         else
+            # case where weights change in time
             @assert string(t_var) ∈ string.(names(df_q))
             Q = zeros(eltype(df_q[!, q_var]), (size(W)))
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
                 Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
             end
+            # cases where q_var is missing for potential control units get assigned a baseline weight 0
         end
     end
+    # XXX Problem: Kullback-Leibler Divergence not defined for instances with zero baseline weights. Need to add step to purge controls with zero baselines
 
     return BalancedPanelQ{SingleUnitTreatment{Continuous}}(W, Y, Q, df, id_var, t_var, outcome_var, ts, is)  
 end
@@ -679,8 +685,8 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment,
                                 sort_inplace = false)
 
     if length(treatment_assignment) == 1
-        return BalancedPanel_maker(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
-                                outcome_var = outcome_var, covariates = covariates, sort_inplace = sort_inplace)
+        return BalancedPanelQ_maker(df, only(treatment_assignment), df_q; id_var = id_var, t_var = t_var,
+                                outcome_var = outcome_var, q_var = q_var, q_id_var = q_id_var, q_dyadic = q_dyadic, covariates = covariates, sort_inplace = sort_inplace)
     end
 
     if typeof(covariates) == Symbol
