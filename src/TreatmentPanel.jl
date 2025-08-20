@@ -411,9 +411,9 @@ end
 ####################################################################################################
 
 # Constructor for single start/end treatment - returns BalancedPanel{SingleUnitTreatment{Discontinuous}}
-function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair{T1, T2};
+function BalancedPanel_maker(df::DataFrame, treatment_assignment::Pair;
     id_var = nothing, t_var = nothing, outcome_var = nothing, 
-    sort_inplace = false) where T1 where T2 <: Union{Pair{Date, Date}, Pair{Int, Int}}
+    sort_inplace = false)
 
     # Get all units and time periods
     is = sort(unique(df[!, id_var])); i_set = Set(is)
@@ -456,14 +456,14 @@ end
 
 
 # DP Fallback method with covariates - if the length of treatment assignment is one use single treatment method above
-function BalancedPanel_maker(df::DataFrame, treatment_assignment::Union{Vector{Pair{Int64, Int64}}};
+function BalancedPanel_maker(df::DataFrame, treatment_assignment::AbstractVector{<:Pair};
                                 id_var = nothing, 
                                 t_var = nothing, 
                                 outcome_var = nothing, 
                                 covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
-                                sort_inplace = false)  where {T1, T3, T4} 
+                                sort_inplace = false)  
 
-    if length(treatment_assignment) == 1
+    if (typeof(treatment_assignment) <: Vector && length(treatment_assignment) == 1)
         return BalancedPanel_maker(df, only(treatment_assignment); id_var = id_var, t_var = t_var,
                                 outcome_var = outcome_var, covariates = covariates, sort_inplace = sort_inplace)
     end
@@ -673,7 +673,7 @@ end
 
 
 # Fallback method - if the length of treatment assignment is one use single treatment method above
-function BalancedPanelQ_maker(df::DataFrame, treatment_assignment,
+function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVector{<:Pair},
                                 df_q::Union{Nothing, DataFrame} = nothing;
                                 id_var = nothing, 
                                 t_var = nothing, 
@@ -684,7 +684,7 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment,
                                 covariates::Union{Nothing, Vector{Symbol}, Symbol} = nothing,
                                 sort_inplace = false)
 
-    if length(treatment_assignment) == 1
+    if (typeof(treatment_assignment) <: Vector && length(treatment_assignment) == 1)
         return BalancedPanelQ_maker(df, only(treatment_assignment), df_q; id_var = id_var, t_var = t_var,
                                 outcome_var = outcome_var, q_var = q_var, q_id_var = q_id_var, q_dyadic = q_dyadic, covariates = covariates, sort_inplace = sort_inplace)
     end
