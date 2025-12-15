@@ -550,6 +550,41 @@ function BalancedPanel_maker(df::DataFrame, treatment_assignment::AbstractVector
 end
 
 
+"""
+    Function to build the 3-dimensional tensor of baseline weights.
+    Note that currently doesn't work in pipeline because the 
+    cohort selection leads to df being a subset of i,j and t of those in df_q !
+    (need to implement a filter first)
+"""
+function assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)#; combine=:overwrite)
+    # Build compact ID→index maps (small Dicts, used many times)
+    i_idx = Dict{eltype(is), Int}(zip(is, eachindex(is)))
+    j_idx = Dict{eltype(is), Int}(zip(is, eachindex(is)))  # if same id space; otherwise use q_ids
+    t_idx = Dict{eltype(ts), Int}(zip(ts, eachindex(ts)))
+
+    # Local column refs (faster than row[:col] / property access in a tight loop)
+    id_col  = df_q[!, id_var]
+    qid_col = df_q[!, q_id_var]
+    t_col   = df_q[!, t_var]
+    v_col   = df_q[!, q_var]
+
+    @inbounds for r in eachindex(id_col)
+        i = i_idx[id_col[r]]       # KeyError if unseen; handle if needed
+        j = j_idx[qid_col[r]]
+        t = t_idx[t_col[r]]
+
+        #if combine === :overwrite
+        Q[i, j, t] = v_col[r]
+        #elseif combine === :sum
+        #    Q[i, j, t] += v_col[r]
+        #elseif combine === :max
+        #    Q[i, j, t] = max(Q[i, j, t], v_col[r])
+        #else
+        #    Q[i, j, t] = v_col[r]  # default
+        #end
+    end
+    return Q
+end
 
 ### PanelMakers for BalancedPanelQ
 # Constructor for single continuous treatment - returns BalancedPanel{SingleUnitTreatment{Continuous}}
@@ -624,6 +659,7 @@ function BalancedPanelQ_maker(df::DataFrame,
 
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
+        #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
         q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
         for row in eachrow(df_q)
@@ -640,6 +676,7 @@ function BalancedPanelQ_maker(df::DataFrame,
         #for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
         #    Q[row, col, slice] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, q_id_var] .== j) .& (df_q[!, t_var] .== t), q_var])
         #end
+        
     else
         if isnothing(df_q) && !isnothing(q_var)
             df_q = select(df, [id_var, t_var, q_var])
@@ -753,9 +790,12 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVecto
             "Please specify q_var, the name of the column in your dataset holding the weight variable in your weight dataset df_q."))
         !isnothing(q_id_var) || error(ArgumentError(
             "Please specify q_id_var, the name of the column in your dataset holding the dyadic partner for the weight in your weight dataset df_q. Otherwise specify q_dyadic = false"))
-
+        
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
+        #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
+
+        
         q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
         for row in eachrow(df_q)
@@ -771,6 +811,7 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVecto
         #for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
         #    Q[row, col, slice] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, q_id_var] .== j) .& (df_q[!, t_var] .== t), q_var])
         #end
+        
     else
         if isnothing(df_q) && !isnothing(q_var)
             df_q = select(df, [id_var, t_var, q_var])
