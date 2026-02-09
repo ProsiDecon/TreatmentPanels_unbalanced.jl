@@ -670,7 +670,7 @@ function BalancedPanelQ_maker(df::DataFrame,
 
             # Now loop and fill Q efficiently
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-                Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+                Q[row, col, slice] = get(q_lookup, (i, j, t), 0)
             end
         else
             q_lookup = Dict{Tuple{eltype(is), eltype(is)}, eltype(df_q[!, q_var])}()
@@ -682,7 +682,7 @@ function BalancedPanelQ_maker(df::DataFrame,
 
             # Now loop and fill Q efficiently, note here we only look up i and j and fill every t with this
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-                Q[row, col, slice] = get(q_lookup, (i, j), missing)
+                Q[row, col, slice] = get(q_lookup, (i, j), 0)
             end
         end
         # use of get() ensures dyads not present in df get assigned a baseline weight of 0
@@ -818,7 +818,7 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVecto
 
             # Now loop and fill Q efficiently
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-                Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+                Q[row, col, slice] = get(q_lookup, (i, j, t), 0)
             end
         else
             q_lookup = Dict{Tuple{eltype(is), eltype(is)}, eltype(df_q[!, q_var])}()
@@ -830,7 +830,7 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVecto
 
             # Now loop and fill Q efficiently, note here we only look up i and j and fill every t with this
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-                Q[row, col, slice] = get(q_lookup, (i, j), missing)
+                Q[row, col, slice] = get(q_lookup, (i, j), 0)
             end
         end
 
