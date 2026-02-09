@@ -660,16 +660,30 @@ function BalancedPanelQ_maker(df::DataFrame,
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
         #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
-        q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
+        if t_var ∈ names(df_q)      # this controls whether weights in df_q are time-variant
+            q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
-        for row in eachrow(df_q)
-            key = (row[id_var], row[q_id_var], row[t_var])
-            q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
-        end
+            for row in eachrow(df_q)
+                key = (row[id_var], row[q_id_var], row[t_var])
+                q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
+            end
 
-        # Now loop and fill Q efficiently
-        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-            Q[row, col, slice] = get(q_lookup, (i, j, t), 0)
+            # Now loop and fill Q efficiently
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
+                Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+            end
+        else
+            q_lookup = Dict{Tuple{eltype(is), eltype(is)}, eltype(df_q[!, q_var])}()
+
+            for row in eachrow(df_q)
+                key = (row[id_var], row[q_id_var])
+                q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
+            end
+
+            # Now loop and fill Q efficiently, note here we only look up i and j and fill every t with this
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
+                Q[row, col, slice] = get(q_lookup, (i, j), missing)
+            end
         end
         # use of get() ensures dyads not present in df get assigned a baseline weight of 0
 
@@ -794,18 +808,30 @@ function BalancedPanelQ_maker(df::DataFrame, treatment_assignment::AbstractVecto
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
         #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
+        if t_var ∈ names(df_q)      # this controls whether weights in df_q are time-variant
+            q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
-        
-        q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
+            for row in eachrow(df_q)
+                key = (row[id_var], row[q_id_var], row[t_var])
+                q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
+            end
 
-        for row in eachrow(df_q)
-            key = (row[id_var], row[q_id_var], row[t_var])
-            q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
-        end
+            # Now loop and fill Q efficiently
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
+                Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+            end
+        else
+            q_lookup = Dict{Tuple{eltype(is), eltype(is)}, eltype(df_q[!, q_var])}()
 
-        # Now loop and fill Q efficiently
-        for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
-            Q[row, col, slice] = get(q_lookup, (i, j, t), missing)
+            for row in eachrow(df_q)
+                key = (row[id_var], row[q_id_var])
+                q_lookup[key] = row[q_var]  # Overwrites duplicates, change if needed
+            end
+
+            # Now loop and fill Q efficiently, note here we only look up i and j and fill every t with this
+            for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
+                Q[row, col, slice] = get(q_lookup, (i, j), missing)
+            end
         end
 
         #for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts), (slice, j) ∈ enumerate(is)
