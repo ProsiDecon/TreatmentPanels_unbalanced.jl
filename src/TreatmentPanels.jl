@@ -6,6 +6,8 @@ include("show_and_plot.jl")
 # Export main types
 export TreatmentPanel
 export BalancedPanel 
+export BalancedPanelCov
+export BalancedPanelQ
 # export UnbalancedPanel - Not yet implemented
 
 # Export treatment description types
