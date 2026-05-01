@@ -835,7 +835,7 @@ function BalancedPanelQ(df::DataFrame,
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
         #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
-        if t_var ∈ names(df_q)      # this controls whether weights in df_q are time-variant
+        if string(t_var) ∈ string.(names(df_q))      # this controls whether weights in df_q are time-variant
             q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
             for row in eachrow(df_q)
@@ -983,7 +983,7 @@ function BalancedPanelQ(df::DataFrame, treatment_assignment::AbstractVector{<:Pa
         Q = zeros(eltype(df_q[!, q_var]), (size(W)..., N))
 
         #assemble_tensor!(Q, df_q, is, ts, id_var, q_id_var, t_var, q_var)
-        if t_var ∈ names(df_q)      # this controls whether weights in df_q are time-variant
+        if string(t_var) ∈ string.(names(df_q))      # this controls whether weights in df_q are time-variant
             q_lookup = Dict{Tuple{eltype(is), eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
 
             for row in eachrow(df_q)
