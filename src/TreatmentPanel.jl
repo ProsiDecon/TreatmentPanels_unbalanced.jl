@@ -876,8 +876,14 @@ function BalancedPanelQ(df::DataFrame,
         if string(t_var) ∉ string.(names(df_q)) && length(unique(df_q[!,id_var])) == length(df_q[!,id_var])
             # case where weights are static
             Q = zeros(eltype(df_q[!, q_var]), (size(W, 1)))
+            q_lookup = Dict{eltype(is), eltype(df_q[!, q_var])}()
+
+            for row in eachrow(df_q)
+                q_lookup[row[id_var]] = row[q_var]
+            end
+
             for (row, i) ∈ enumerate(is)
-                Q[row] = only(df_q[(df_q[!, id_var] .== i), q_var])
+                Q[row] = get(q_lookup, i, zero(eltype(df_q[!, q_var])))
             end
             # cases where q_var is missing for potential control units get assigned a baseline weight 0
         else
@@ -1022,8 +1028,14 @@ function BalancedPanelQ(df::DataFrame, treatment_assignment::AbstractVector{<:Pa
 
         if string(t_var) ∉ string.(names(df_q)) && length(unique(df_q[!,id_var])) == length(df_q[!,id_var])
             Q = zeros(eltype(df_q[!, q_var]), (size(W, 1)))
+            q_lookup = Dict{eltype(is), eltype(df_q[!, q_var])}()
+
+            for row in eachrow(df_q)
+                q_lookup[row[id_var]] = row[q_var]
+            end
+
             for (row, i) ∈ enumerate(is)
-                Q[row] = only(df_q[(df_q[!, id_var] .== i), q_var])
+                Q[row] = get(q_lookup, i, zero(eltype(df_q[!, q_var])))
             end
         else
             @assert string(t_var) ∈ string.(names(df_q))
