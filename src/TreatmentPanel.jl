@@ -106,6 +106,16 @@ function check_id_t_outcome(df, outcome_var, id_var, t_var)
     f(string(outcome_var)) || throw("Error: ID variable $outcome_var is not present in the data.")
 end
 
+# function to elicit and promote type of outcome and covariate variables for construction of Y array in BalancedPanelCov
+function panel_y_eltype(df::DataFrame, outcome_var, covariates)
+    y_vars = [outcome_var; covariates]
+    y_eltypes = eltype.(eachcol(df[!, y_vars]))
+    all(T -> T <: Real, y_eltypes) ||
+        throw(ArgumentError("Outcome and covariates must be numeric."))
+
+    promote_type(y_eltypes...)
+end
+
 # Functions to get all treatment periods
 function treatment_periods(ta::Pair{T1, S1}) where T1 where S1
     [last(ta)]
@@ -607,7 +617,7 @@ function BalancedPanelCov(df::DataFrame,
     W = construct_W(treatment_assignment, N, T, is, ts)
 
     # Outcome matrix with covariates
-    Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+    Y = zeros(panel_y_eltype(df, outcome_var, covariates), (size(W)..., length(covariates)+1))
     for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
         Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
     end
@@ -678,7 +688,7 @@ function BalancedPanelCov(df::DataFrame, treatment_assignment::AbstractVector{<:
     #W = TreatmentPanels.construct_W(treatment_assignment, N, T, is, ts)
     
      # Outcome matrix
-    Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+    Y = zeros(panel_y_eltype(df, outcome_var, covariates), (size(W)..., length(covariates)+1))
     for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
         Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
     end
@@ -797,7 +807,7 @@ function BalancedPanelQ(df::DataFrame,
 
     # Outcome matrix
     if !isnothing(covariates)
-        Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+        Y = zeros(panel_y_eltype(df, outcome_var, covariates), (size(W)..., length(covariates)+1))
         for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
             Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
         end
@@ -945,7 +955,7 @@ function BalancedPanelQ(df::DataFrame, treatment_assignment::AbstractVector{<:Pa
     
     # Outcome matrix
     if !isnothing(covariates)
-        Y = zeros(eltype(df[!, outcome_var]), (size(W)..., length(covariates)+1))
+        Y = zeros(panel_y_eltype(df, outcome_var, covariates), (size(W)..., length(covariates)+1))
         for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
             Y[row, col,1] = only(df[(df[!, id_var] .== i) .& (df[!, t_var] .== t), outcome_var])
         end
