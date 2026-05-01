@@ -403,13 +403,13 @@ function get_y₁₀(x::BalancedPanel{SingleUnitTreatment{Continuous}})
     x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
 end
 
-function get_y₁₀(x::BalancedPanelCov{SingleUnitTreatment{Continuous}})
-    x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
-end
+#function get_y₁₀(x::BalancedPanelCov{SingleUnitTreatment{Continuous}})
+#    x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
+#end
 
-function get_y₁₀(x::BalancedPanelQ{SingleUnitTreatment{Continuous}})
-    x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
-end
+#function get_y₁₀(x::BalancedPanelQ{SingleUnitTreatment{Continuous}})
+#    x.Y[treated_ids(x), 1:first_treated_period_ids(x)-1]
+#end
 
 
 """ 
@@ -890,8 +890,14 @@ function BalancedPanelQ(df::DataFrame,
             # case where weights change in time
             @assert string(t_var) ∈ string.(names(df_q))
             Q = zeros(eltype(df_q[!, q_var]), (size(W)))
+            q_lookup = Dict{Tuple{eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
+
+            for row in eachrow(df_q)
+                q_lookup[(row[id_var], row[t_var])] = row[q_var]
+            end
+
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
-                Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
+                Q[row, col] = get(q_lookup, (i, t), zero(eltype(df_q[!, q_var])))
             end
             # cases where q_var is missing for potential control units get assigned a baseline weight 0
         end
@@ -1040,8 +1046,14 @@ function BalancedPanelQ(df::DataFrame, treatment_assignment::AbstractVector{<:Pa
         else
             @assert string(t_var) ∈ string.(names(df_q))
             Q = zeros(eltype(df_q[!, q_var]), (size(W)))
+            q_lookup = Dict{Tuple{eltype(is), eltype(ts)}, eltype(df_q[!, q_var])}()
+
+            for row in eachrow(df_q)
+                q_lookup[(row[id_var], row[t_var])] = row[q_var]
+            end
+
             for (row, i) ∈ enumerate(is), (col, t) ∈ enumerate(ts)
-                Q[row, col] = only(df_q[(df_q[!, id_var] .== i) .& (df_q[!, t_var] .== t), q_var])
+                Q[row, col] = get(q_lookup, (i, t), zero(eltype(df_q[!, q_var])))
             end
         end
     end
