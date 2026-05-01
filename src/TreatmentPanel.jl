@@ -576,7 +576,7 @@ function BalancedPanelCov(df::DataFrame,
                         sort_inplace = false) where T1 where T2 <: Union{Date, Int}
     
     if isnothing(covariates)    # fallback to BalancedPanel constructor if no covariates are specified
-        BalancedPanel(df, treatment_assignment; id_var = id_var, t_var = t_var, outcome_var = outcome_var, sort_inplace = sort_inplace)
+        return BalancedPanel(df, treatment_assignment; id_var = id_var, t_var = t_var, outcome_var = outcome_var, sort_inplace = sort_inplace)
     elseif typeof(covariates) == Symbol
         covariates = [covariates]
     end
